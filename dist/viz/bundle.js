@@ -8470,7 +8470,19 @@ exports.default = Renderer;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEPS = {
-    "YARN GENERATE": ["PLEASE RUN"]
+    "example/file1": [
+        "example/file2"
+    ],
+    "example/file2": [
+        "example/file3"
+    ],
+    "example/file3": [
+        "example/file1",
+        "example/file2"
+    ],
+    "viz/index": [
+        "viz/_generated_deps"
+    ]
 };
 
 
