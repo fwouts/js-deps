@@ -1,0 +1,19 @@
+{
+  "name": "deps",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Francois Wouts",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node ./src/main.ts",
+    "start:live": "nodemon -e ts --exec yarn start"
+  },
+  "dependencies": {
+    "nofiles": "^1.0.4",
+    "typescript": "^2.4.2"
+  },
+  "devDependencies": {
+    "nodemon": "^1.11.0",
+    "ts-node": "^3.3.0"
+  }
+}
