@@ -2643,7 +2643,7 @@ var graph = new Dracula.Graph();
 console.log(_generated_deps_1.DEPS);
 for (let path of Object.keys(_generated_deps_1.DEPS)) {
     for (let depPath of _generated_deps_1.DEPS[path]) {
-        graph.addEdge(path, depPath);
+        graph.addEdge(path, depPath, { directed: true });
     }
 }
 var layouter = new Dracula.Layout.Spring(graph);

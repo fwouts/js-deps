@@ -1,6 +1,6 @@
 declare module "graphdracula" {
   class Graph {
-    addEdge(from: string, to: string): void;
+    addEdge(from: string, to: string, options?: { directed?: boolean }): void;
   }
   namespace Layout {
     class Spring {

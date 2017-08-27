@@ -7,7 +7,7 @@ var graph = new Dracula.Graph();
 console.log(DEPS);
 for (let path of Object.keys(DEPS)) {
   for (let depPath of DEPS[path]) {
-    graph.addEdge(path, depPath);
+    graph.addEdge(path, depPath, { directed: true });
   }
 }
 
