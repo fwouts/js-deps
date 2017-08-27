@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as ts from "typescript";
 
 import { ImmutableDirectory, ImmutableFile, io } from "nofiles";
@@ -19,7 +20,24 @@ class FileDeps {
 
 let deps = getDeps(io.read(SRC_DIRECTORY) as ImmutableDirectory);
 let registry = createRegistry(deps);
-console.log(registry);
+let output: {
+  [key: string]: string[];
+} = {};
+for (let i = 0; i < registry.size; i++) {
+  let path = registry.paths[i];
+  let deps = registry.deps[i];
+  for (let dep of deps) {
+    let depPath = registry.paths[dep];
+    // Ignore dependencies from/to NPM modules.
+    if (path[0] != "@" && depPath[0] != "@") {
+      output[path] = (output[path] || []).concat(depPath);
+    }
+  }
+}
+fs.writeFileSync(
+  __dirname + "/../viz/_generated_deps.ts",
+  "export const DEPS = " + JSON.stringify(output, null, 2)
+);
 
 function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
   let folderDeps: FolderDeps = {};

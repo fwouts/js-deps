@@ -10,6 +10,7 @@
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "sourceMap": false,
+    "skipLibCheck": true,
     "typeRoots": ["node_modules/@types"],
     "rootDir": "src",
     "outDir": "dist"

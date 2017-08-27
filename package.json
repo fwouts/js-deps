@@ -5,15 +5,23 @@
   "author": "Francois Wouts",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node ./src/main.ts",
-    "start:live": "nodemon -e ts --exec yarn start"
+    "generate": "ts-node ./src/generate/main.ts",
+    "generate:live": "nodemon -e ts --watch src/generate/ --exec yarn generate",
+    "viz": "webpack",
+    "viz:live": "nodemon -e ts --watch src/viz/ --exec yarn viz"
   },
   "dependencies": {
+    "graphdracula": "^1.1.2",
     "nofiles": "^1.0.4",
+    "raphael": "^2.2.7",
     "typescript": "^2.4.2"
   },
   "devDependencies": {
+    "@types/node": "^8.0.25",
+    "awesome-typescript-loader": "^3.2.3",
     "nodemon": "^1.11.0",
-    "ts-node": "^3.3.0"
+    "source-map-loader": "^0.2.1",
+    "ts-node": "^3.3.0",
+    "webpack": "^3.5.5"
   }
 }
