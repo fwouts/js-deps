@@ -4,6 +4,10 @@ This generates a graph of dependencies between JS files.
 
 Under the hood, it uses the TypeScript library to parse import statements. Note that currently, only ES6 import are supported.
 
+## Demo
+
+[Try it out](https://cdn.rawgit.com/fwouts/js-deps/master/dist/viz/index.html)
+
 ## How to use:
 
 ```
