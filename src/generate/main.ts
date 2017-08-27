@@ -72,7 +72,7 @@ function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
         }
       }
       folderDeps[childName] = fileDeps;
-    } else {
+    } else if (childName != "node_modules") {
       folderDeps[childName] = getDeps(child, path.concat(childName));
     }
   }
