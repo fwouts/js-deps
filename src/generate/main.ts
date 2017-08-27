@@ -3,8 +3,6 @@ import * as ts from "typescript";
 
 import { ImmutableDirectory, ImmutableFile, io } from "nofiles";
 
-const SRC_DIRECTORY = "/Users/work/GitHub/modular/codegen/src";
-
 type Registry = {
   indexes: { [key: string]: number };
   paths: { [key: number]: string };
@@ -18,7 +16,16 @@ class FileDeps {
   imports: string[] = [];
 }
 
-let deps = getDeps(io.read(SRC_DIRECTORY) as ImmutableDirectory);
+let jsDepsDirectory = process.env.JS_DIR;
+if (typeof jsDepsDirectory != "string") {
+  throw new Error(
+    "Please set JS_DIR to the JS directory you want to analyse. For example:\nJS_DIR=~/GitHub/myproject yarn start"
+  );
+}
+console.log("Reading files...");
+let directory = io.read(jsDepsDirectory) as ImmutableDirectory;
+console.log("Finding deps...");
+let deps = getDeps(directory);
 let registry = createRegistry(deps);
 let output: {
   [key: string]: string[];

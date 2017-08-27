@@ -5,10 +5,12 @@
   "author": "Francois Wouts",
   "license": "MIT",
   "scripts": {
+    "start": "yarn serve",
     "generate": "ts-node ./src/generate/main.ts",
     "generate:live": "nodemon -e ts --watch src/generate/ --exec yarn generate",
-    "viz": "webpack",
-    "viz:live": "nodemon -e ts --watch src/viz/ --exec yarn viz"
+    "viz:build": "webpack",
+    "viz:livebuild": "nodemon -e ts --watch src/viz/ --exec yarn viz:build",
+    "serve": "yarn generate && yarn viz:build && concurrently \"http-server dist/viz/ -a localhost -p 1234\" \"open http://localhost:1234/\""
   },
   "dependencies": {
     "graphdracula": "^1.1.2",
@@ -19,6 +21,8 @@
   "devDependencies": {
     "@types/node": "^8.0.25",
     "awesome-typescript-loader": "^3.2.3",
+    "concurrently": "^3.5.0",
+    "http-server": "^0.10.0",
     "nodemon": "^1.11.0",
     "source-map-loader": "^0.2.1",
     "ts-node": "^3.3.0",
