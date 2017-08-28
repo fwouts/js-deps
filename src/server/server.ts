@@ -1,16 +1,29 @@
 import * as bodyParser from "body-parser";
 import * as contract from "../api/contract";
 import * as express from "express";
+import * as path from "path";
 
-import analyze from "../deps/analyze";
+import analyze, { Registry } from "../deps/analyze";
 
 const app = express();
 app.use("/", express.static("dist"));
 app.use(bodyParser.json());
 
+app.get("/sourcepath", (req, res) => {
+  respondJson<contract.GetSourcePathResponse>(res, {
+    path: path.dirname(__dirname) // src directory
+  });
+});
+
 app.post("/deps", (req, res) => {
   let request = req.body as contract.DepsRequest;
-  let registry = analyze(request.path);
+  let registry: Registry;
+  try {
+    registry = analyze(request.path);
+  } catch (e) {
+    console.error(e);
+    registry = { indexes: {}, paths: [], deps: [], size: 0 };
+  }
   respondJson<contract.DepsResponse>(res, {
     registry
   });
