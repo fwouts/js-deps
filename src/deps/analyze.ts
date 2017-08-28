@@ -66,6 +66,22 @@ function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
             fileDeps.imports.push(
               absolutePath(path, statement.moduleSpecifier.text)
             );
+          } else if (ts.isVariableStatement(statement)) {
+            for (let declaration of statement.declarationList.declarations) {
+              if (
+                declaration.initializer &&
+                ts.isCallExpression(declaration.initializer) &&
+                ts.isIdentifier(declaration.initializer.expression) &&
+                declaration.initializer.expression.originalKeywordKind ==
+                  ts.SyntaxKind.RequireKeyword
+              ) {
+                for (let argument of declaration.initializer.arguments) {
+                  if (ts.isStringLiteral(argument)) {
+                    fileDeps.imports.push(absolutePath(path, argument.text));
+                  }
+                }
+              }
+            }
           }
         }
         folderDeps[childName] = fileDeps;
