@@ -6,7 +6,7 @@ Under the hood, it uses the TypeScript library to parse import statements. Note 
 
 ## Demo
 
-[Try it out](https://cdn.rawgit.com/fwouts/js-deps/master/dist/viz/index.html)
+[Try it out](https://cdn.rawgit.com/fwouts/js-deps/demo/dist/viz/index.html)
 
 ## How to use:
 
