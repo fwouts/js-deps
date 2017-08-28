@@ -5,7 +5,7 @@
   "author": "Francois Wouts",
   "license": "MIT",
   "scripts": {
-    "start": "yarn server",
+    "start": "concurrently \"yarn server\" \"open http://localhost:3003\"",
     "server": "ts-node ./src/server/server.ts",
     "server:live": "nodemon -e ts --watch src/server/ --exec yarn server",
     "ui:build": "webpack",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "body-parser": "^1.17.2",
+    "concurrently": "^3.5.0",
     "express": "^4.15.4",
     "nofiles": "^1.0.4",
     "typescript": "^2.4.2",

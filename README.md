@@ -16,6 +16,5 @@ Under the hood, it uses the TypeScript library to parse import statements. Note 
 git clone https://github.com/fwouts/js-deps.git ~/js-deps
 cd ~/js-deps
 yarn install
-JS_DIR=./src yarn serve
-# Try replacing JS_DIR with your own project
+yarn start
 ```
