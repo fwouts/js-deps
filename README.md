@@ -6,7 +6,7 @@ Under the hood, it uses the TypeScript library to parse `import` and `require` s
 
 ## [Demo](https://cdn.rawgit.com/fwouts/js-deps/demo/dist/viz/index.html)
 
-![Visualisation of dependencies](../master/example.png)
+[![Visualisation of dependencies](../master/example.png)](https://cdn.rawgit.com/fwouts/js-deps/demo/dist/viz/index.html)
 
 ## How to use:
 
