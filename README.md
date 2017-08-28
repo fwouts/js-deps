@@ -1,8 +1,10 @@
 # JS deps
 
-This generates a graph of dependencies between JS files.
+Generates a graph of dependencies between JS/JSX/TS/TSX files.
 
-Under the hood, it uses the TypeScript library to parse `import` and `require` statements. Note that currently, only top-level statements considered (e.g. a conditional `require` will be ignored).
+This works by launching a local server which will parse your codebase and analyze dependencies. Obviously, no code is transmitted to any third-party server.
+
+Under the hood, it uses the TypeScript library to parse `import` and `require` statements. Note that currently, only top-level statements are taken into account (a conditional `require` will be ignored).
 
 ## [Demo](https://cdn.rawgit.com/fwouts/js-deps/demo/dist/viz/index.html)
 
