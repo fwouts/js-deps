@@ -1,12 +1,11 @@
-import * as fs from "fs";
 import * as ts from "typescript";
 
 import { ImmutableDirectory, ImmutableFile, io } from "nofiles";
 
-type Registry = {
+export type Registry = {
   indexes: { [key: string]: number };
-  paths: { [key: number]: string };
-  deps: { [key: number]: Set<number> };
+  paths: string[];
+  deps: number[][];
   size: number;
 };
 
@@ -16,35 +15,13 @@ class FileDeps {
   imports: string[] = [];
 }
 
-let jsDepsDirectory = process.env.JS_DIR;
-if (typeof jsDepsDirectory != "string") {
-  throw new Error(
-    "Please set JS_DIR to the JS directory you want to analyse. For example:\nJS_DIR=~/GitHub/myproject yarn start"
-  );
+export default function analyze(directoryPath: string): Registry {
+  let directory = io.read(directoryPath) as ImmutableDirectory;
+  let deps = getDeps(directory);
+  let registry = createRegistry(deps);
+  removeDuplicateDeps(registry);
+  return registry;
 }
-console.log("Reading files...");
-let directory = io.read(jsDepsDirectory) as ImmutableDirectory;
-console.log("Finding deps...");
-let deps = getDeps(directory);
-let registry = createRegistry(deps);
-let output: {
-  [key: string]: string[];
-} = {};
-for (let i = 0; i < registry.size; i++) {
-  let path = registry.paths[i];
-  let deps = registry.deps[i];
-  for (let dep of deps) {
-    let depPath = registry.paths[dep];
-    // Ignore dependencies from/to NPM modules.
-    if (path[0] != "@" && depPath[0] != "@") {
-      output[path] = (output[path] || []).concat(depPath);
-    }
-  }
-}
-fs.writeFileSync(
-  __dirname + "/../viz/_generated_deps.ts",
-  "export const DEPS = " + JSON.stringify(output, null, 2)
-);
 
 function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
   let folderDeps: FolderDeps = {};
@@ -133,7 +110,7 @@ function absolutePath(
 
 function createRegistry(
   deps: FolderDeps,
-  registry: Registry = { indexes: {}, paths: {}, deps: {}, size: 0 },
+  registry: Registry = { indexes: {}, paths: [], deps: [], size: 0 },
   path: string[] = []
 ): Registry {
   for (let key of Object.keys(deps)) {
@@ -142,7 +119,8 @@ function createRegistry(
       let currentPath = path.concat(key).join("/");
       let currentIndex = index(currentPath);
       for (let importPath of entry.imports) {
-        registry.deps[currentIndex].add(index(importPath));
+        // TODO: Remove duplicates.
+        registry.deps[currentIndex].push(index(importPath));
       }
     } else {
       createRegistry(entry, registry, path.concat(key));
@@ -165,10 +143,16 @@ function createRegistry(
       let index = registry.size++;
       registry.indexes[path] = index;
       registry.paths[index] = path;
-      registry.deps[index] = new Set();
+      registry.deps[index] = [];
     }
     return registry.indexes[path];
   }
 
   return registry;
+}
+
+function removeDuplicateDeps(registry: Registry): void {
+  for (let i = 0; i < registry.size; i++) {
+    registry.deps[i] = Array.from(new Set(registry.deps[i]));
+  }
 }
