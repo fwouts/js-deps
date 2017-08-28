@@ -32,22 +32,36 @@ function loadDeps(path: string) {
     .then(response => response.json())
     .then((response: contract.DepsResponse) => {
       let registry = response.registry;
-      let nodesData: {}[] = [];
+      let nodesDataById: { [key: number]: {} } = {};
       let edgesData: {}[] = [];
-      for (let i = 0; i < registry.size; i++) {
-        nodesData.push({
-          id: i,
-          label: registry.paths[i]
-        });
-        for (let dep of registry.deps[i]) {
+      let isolatedNodeIds = new Set<number>();
+      for (let id = 0; id < registry.size; id++) {
+        isolatedNodeIds.add(id);
+      }
+      for (let id = 0; id < registry.size; id++) {
+        nodesDataById[id] = {
+          id: id,
+          label: registry.paths[id]
+        };
+        let depIds = registry.deps[id];
+        if (depIds.length) {
+          // This node is not isolated.
+          isolatedNodeIds.delete(id);
+        }
+        for (let depId of depIds) {
+          isolatedNodeIds.delete(depId);
           edgesData.push({
-            from: i,
-            to: dep,
+            from: id,
+            to: depId,
             arrows: "to"
           });
         }
       }
-      if (!registry.size) {
+      for (let id of isolatedNodeIds) {
+        delete nodesDataById[id];
+      }
+      let nodesData = Array.from(Object.values(nodesDataById));
+      if (!nodesData.length) {
         nodesData.push({
           id: 0,
           label: "No JS or TS files found"
