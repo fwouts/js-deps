@@ -26,38 +26,54 @@ export default function analyze(directoryPath: string): Registry {
 function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
   let folderDeps: FolderDeps = {};
   for (let [childName, child] of source.list().entries()) {
+    let childPath = path.concat(childName);
     if (child instanceof ImmutableFile) {
-      let parsed: ts.SourceFile;
-      let text = child.getBuffer().toString("utf8");
-      if (childName.endsWith(".js")) {
-        parsed = parseSourceFile(text, ts.ScriptKind.JS);
-      } else if (childName.endsWith(".ts")) {
-        parsed = parseSourceFile(text, ts.ScriptKind.TS);
-      } else if (childName.endsWith(".jsx")) {
-        parsed = parseSourceFile(text, ts.ScriptKind.JSX);
-      } else if (childName.endsWith(".tsx")) {
-        parsed = parseSourceFile(text, ts.ScriptKind.TSX);
-      } else {
-        // Ignore.
-        continue;
-      }
-      let fileDeps = new FileDeps();
-      for (let statement of parsed.statements) {
-        if (ts.isImportDeclaration(statement)) {
-          if (!ts.isStringLiteral(statement.moduleSpecifier)) {
-            throw new Error(
-              "Found an import that is not a string literal: " +
-                statement.moduleSpecifier
+      try {
+        let parsed: ts.SourceFile;
+        if (childName.endsWith(".js")) {
+          parsed = parseSourceFile(
+            child.getBuffer().toString("utf8"),
+            ts.ScriptKind.JS
+          );
+        } else if (childName.endsWith(".ts")) {
+          parsed = parseSourceFile(
+            child.getBuffer().toString("utf8"),
+            ts.ScriptKind.TS
+          );
+        } else if (childName.endsWith(".jsx")) {
+          parsed = parseSourceFile(
+            child.getBuffer().toString("utf8"),
+            ts.ScriptKind.JSX
+          );
+        } else if (childName.endsWith(".tsx")) {
+          parsed = parseSourceFile(
+            child.getBuffer().toString("utf8"),
+            ts.ScriptKind.TSX
+          );
+        } else {
+          // Ignore.
+          continue;
+        }
+        let fileDeps = new FileDeps();
+        for (let statement of parsed.statements) {
+          if (ts.isImportDeclaration(statement)) {
+            if (!ts.isStringLiteral(statement.moduleSpecifier)) {
+              throw new Error(
+                "Found an import that is not a string literal in " +
+                  childPath.join("/")
+              );
+            }
+            fileDeps.imports.push(
+              absolutePath(path, statement.moduleSpecifier.text)
             );
           }
-          fileDeps.imports.push(
-            absolutePath(path, statement.moduleSpecifier.text)
-          );
         }
+        folderDeps[childName] = fileDeps;
+      } catch (e) {
+        console.error("Could not parse " + childPath.join("/"), e);
       }
-      folderDeps[childName] = fileDeps;
     } else if (childName != "node_modules") {
-      folderDeps[childName] = getDeps(child, path.concat(childName));
+      folderDeps[childName] = getDeps(child, childPath);
     }
   }
   return folderDeps;
