@@ -13,13 +13,14 @@
     "serve": "yarn generate && yarn viz:build && concurrently \"http-server dist/viz/ -a localhost -p 1234\" \"open http://localhost:1234/\""
   },
   "dependencies": {
-    "graphdracula": "^1.1.2",
     "nofiles": "^1.0.4",
     "raphael": "^2.2.7",
-    "typescript": "^2.4.2"
+    "typescript": "^2.4.2",
+    "vis": "^4.20.1"
   },
   "devDependencies": {
     "@types/node": "^8.0.25",
+    "@types/vis": "^4.18.4",
     "awesome-typescript-loader": "^3.2.3",
     "concurrently": "^3.5.0",
     "http-server": "^0.10.0",

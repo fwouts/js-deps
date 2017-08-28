@@ -1,25 +1,35 @@
-import * as Dracula from "graphdracula";
+import * as vis from "vis";
 
 import { DEPS } from "./_generated_deps";
 
-var graph = new Dracula.Graph();
-
-console.log(DEPS);
+let allPaths = new Set<string>();
 for (let path of Object.keys(DEPS)) {
+  allPaths.add(path);
   for (let depPath of DEPS[path]) {
-    graph.addEdge(path, depPath, { directed: true });
+    allPaths.add(depPath);
   }
 }
 
-var layouter: Dracula.Layout.Spring = new Dracula.Layout.Spring(graph);
-layouter.layout();
+let nodesData: {}[] = Array.from(allPaths).map(path => {
+  return { id: path, label: path };
+});
+let edgesData: {}[] = [];
+for (let path of Object.keys(DEPS)) {
+  for (let depPath of DEPS[path]) {
+    edgesData.push({
+      from: path,
+      to: depPath,
+      arrows: "to"
+    });
+  }
+}
 
-let element = <HTMLDivElement>document.getElementById("graph");
-var renderer = new Dracula.Renderer.Raphael(
-  "#graph",
-  graph,
-  element.offsetWidth,
-  element.offsetHeight
-);
-renderer.draw();
-console.log(renderer);
+let nodes = new vis.DataSet(nodesData);
+let edges = new vis.DataSet(edgesData);
+let container = document.getElementById("graph")!;
+let data: vis.Data = {
+  nodes: nodes,
+  edges: edges
+};
+let options: vis.Options = {};
+let network = new vis.Network(container, data, options);
