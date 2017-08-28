@@ -6,6 +6,8 @@ Under the hood, it uses the TypeScript library to parse import statements. Note 
 
 ## Demo
 
+![Visualisation of dependencies](../master/example.png)
+
 [Try it out](https://cdn.rawgit.com/fwouts/js-deps/demo/dist/viz/index.html)
 
 ## How to use:
