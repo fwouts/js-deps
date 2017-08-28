@@ -7,9 +7,9 @@
   "scripts": {
     "start": "concurrently \"yarn server\" \"open http://localhost:3003\"",
     "server": "ts-node ./src/server/server.ts",
-    "server:live": "nodemon -e ts --watch src/server/ --exec yarn server",
+    "server:live": "nodemon -e ts --watch src/ --exec yarn server",
     "ui:build": "webpack",
-    "ui:livebuild": "nodemon -e ts --watch src/ui/ --exec yarn ui:build"
+    "ui:livebuild": "nodemon -e ts --watch src/ --exec yarn ui:build"
   },
   "dependencies": {
     "body-parser": "^1.17.2",
