@@ -5,11 +5,9 @@
   "author": "Francois Wouts",
   "license": "MIT",
   "scripts": {
-    "start": "concurrently \"yarn server\" \"open http://localhost:3003\"",
-    "server": "ts-node ./src/server/server.ts",
-    "server:live": "nodemon -e ts --watch src/ --exec yarn server",
-    "ui:build": "webpack",
-    "ui:livebuild": "nodemon -e ts --watch src/ --exec yarn ui:build"
+    "start": "concurrently \"yarn server\" \"yarn build-ui\" \"open http://localhost:3003\"",
+    "server": "ts-node-dev ./src/server/server.ts",
+    "build-ui": "webpack-cli --watch"
   },
   "dependencies": {
     "body-parser": "^1.18.3",
@@ -28,6 +26,8 @@
     "nodemon": "^1.17.5",
     "source-map-loader": "^0.2.3",
     "ts-node": "^6.0.3",
-    "webpack": "^4.8.3"
+    "ts-node-dev": "^1.0.0-pre.23",
+    "webpack": "^4.8.3",
+    "webpack-cli": "^2.1.4"
   }
 }
