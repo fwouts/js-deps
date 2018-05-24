@@ -30,7 +30,7 @@ function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
     if (child instanceof ImmutableFile) {
       try {
         let parsed: ts.SourceFile;
-        if (childName.endsWith(".js")) {
+        if (childName.endsWith(".js") || childName.endsWith(".es6")) {
           parsed = parseSourceFile(
             child.getBuffer().toString("utf8"),
             ts.ScriptKind.JS
