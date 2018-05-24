@@ -1,5 +1,5 @@
-import * as contract from "../api/contract";
 import * as vis from "vis";
+import * as contract from "../api/contract";
 
 let pathInput = <HTMLInputElement>document.getElementById("path");
 let form = <HTMLFormElement>document.getElementById("form");
@@ -39,9 +39,18 @@ function loadDeps(path: string) {
         isolatedNodeIds.add(id);
       }
       for (let id = 0; id < registry.size; id++) {
+        let label = registry.paths[id];
+        let isPackage = label.startsWith('@');
+        let isExternal = label.startsWith('../');
         nodesDataById[id] = {
           id: id,
-          label: registry.paths[id]
+          label,
+          color: {
+            background: isPackage ? '#fa4' : isExternal ? '#000' : '#48f'
+          },
+          font: {
+            color: isPackage ? '#000' : '#fff'
+          }
         };
         let depIds = registry.deps[id];
         if (depIds.length) {
