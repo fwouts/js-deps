@@ -3734,12 +3734,6 @@ nodemon@^1.17.5:
     undefsafe "^2.0.2"
     update-notifier "^2.3.0"
 
-nofiles@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/nofiles/-/nofiles-1.0.4.tgz#dfd84d5742e5798463f2889c5bd1b1dc5bedd000"
-  dependencies:
-    textbuilder "^1.0.2"
-
 nomnom@^1.8.1:
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/nomnom/-/nomnom-1.8.1.tgz#2151f722472ba79e50a76fc125bb8c8f2e4dc2a7"
@@ -5073,10 +5067,6 @@ term-size@^1.2.0:
 text-table@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/text-table/-/text-table-0.2.0.tgz#7f5ee823ae805207c00af2df4a84ec3fcfa570b4"
-
-textbuilder@^1.0.2:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/textbuilder/-/textbuilder-1.0.3.tgz#ae1ac58f7870fbc15cb5f1dfb060f963a3bdc8b7"
 
 textextensions@2:
   version "2.2.0"

@@ -1,6 +1,6 @@
+import * as fs from "fs";
+import * as path from "path";
 import * as ts from "typescript";
-
-import { ImmutableDirectory, ImmutableFile, io } from "nofiles";
 
 export type Registry = {
   indexes: { [key: string]: number };
@@ -16,38 +16,38 @@ class FileDeps {
 }
 
 export default function analyze(directoryPath: string): Registry {
-  let directory = io.read(directoryPath) as ImmutableDirectory;
-  let deps = getDeps(directory);
+  let deps = getDeps(directoryPath, directoryPath);
   let registry = createRegistry(deps);
   removeDuplicateDeps(registry);
   return registry;
 }
 
-function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
+function getDeps(rootDirectoryPath: string, currentDirectoryPath: string): FolderDeps {
   let folderDeps: FolderDeps = {};
-  for (let [childName, child] of source.list().entries()) {
-    let childPath = path.concat(childName);
-    if (child instanceof ImmutableFile) {
+  for (let childName of fs.readdirSync(currentDirectoryPath)) {
+    let childPath = path.join(currentDirectoryPath, childName);
+    let lstat = fs.lstatSync(childPath);
+    if (lstat.isFile()) {
       try {
         let parsed: ts.SourceFile;
         if (childName.endsWith(".js") || childName.endsWith(".es6")) {
           parsed = parseSourceFile(
-            child.getBuffer().toString("utf8"),
+            fs.readFileSync(childPath, 'utf8'),
             ts.ScriptKind.JS
           );
         } else if (childName.endsWith(".ts")) {
           parsed = parseSourceFile(
-            child.getBuffer().toString("utf8"),
+            fs.readFileSync(childPath, 'utf8'),
             ts.ScriptKind.TS
           );
         } else if (childName.endsWith(".jsx")) {
           parsed = parseSourceFile(
-            child.getBuffer().toString("utf8"),
+            fs.readFileSync(childPath, 'utf8'),
             ts.ScriptKind.JSX
           );
         } else if (childName.endsWith(".tsx")) {
           parsed = parseSourceFile(
-            child.getBuffer().toString("utf8"),
+            fs.readFileSync(childPath, 'utf8'),
             ts.ScriptKind.TSX
           );
         } else {
@@ -60,11 +60,11 @@ function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
             if (!ts.isStringLiteral(statement.moduleSpecifier)) {
               throw new Error(
                 "Found an import that is not a string literal in " +
-                  childPath.join("/")
+                  childPath
               );
             }
             fileDeps.imports.push(
-              absolutePath(path, statement.moduleSpecifier.text)
+              relativePath(rootDirectoryPath, currentDirectoryPath, statement.moduleSpecifier.text)
             );
           } else if (ts.isVariableStatement(statement)) {
             for (let declaration of statement.declarationList.declarations) {
@@ -77,19 +77,26 @@ function getDeps(source: ImmutableDirectory, path: string[] = []): FolderDeps {
               ) {
                 for (let argument of declaration.initializer.arguments) {
                   if (ts.isStringLiteral(argument)) {
-                    fileDeps.imports.push(absolutePath(path, argument.text));
+                    fileDeps.imports.push(relativePath(rootDirectoryPath, currentDirectoryPath, argument.text));
                   }
                 }
               }
             }
           }
         }
-        folderDeps[childName] = fileDeps;
+        let childNameWithoutExtension;
+        let extensionPosition = childName.lastIndexOf(".");
+        if (extensionPosition > -1) {
+          childNameWithoutExtension = childName.substr(0, extensionPosition);
+        } else {
+          childNameWithoutExtension = childName;
+        }
+        folderDeps[childNameWithoutExtension] = fileDeps;
       } catch (e) {
-        console.error("Could not parse " + childPath.join("/"), e);
+        console.error("Could not parse " + childPath, e);
       }
-    } else if (childName != "node_modules") {
-      folderDeps[childName] = getDeps(child, childPath);
+    } else if (lstat.isDirectory() && childName != "node_modules") {
+      folderDeps[childName] = getDeps(rootDirectoryPath, childPath);
     }
   }
   return folderDeps;
@@ -109,8 +116,9 @@ function parseSourceFile(
   return sourceFile;
 }
 
-function absolutePath(
-  currentPath: string[],
+function relativePath(
+  rootDirectoryPath: string,
+  fromDirectoryPath: string,
   relativePathOrPackage: string
 ): string {
   let isPackage: boolean;
@@ -121,23 +129,7 @@ function absolutePath(
     // This is an NPM package path.
     return "@" + relativePathOrPackage;
   }
-  while (relativePathOrPackage.startsWith(".")) {
-    if (relativePathOrPackage.startsWith("./")) {
-      // This is the current directory. Nothing left to do.
-      relativePathOrPackage = relativePathOrPackage.substr(2);
-    } else if (relativePathOrPackage.startsWith("../")) {
-      // Pop one directory off the top of the current path.
-      if (currentPath.length == 0) {
-        throw new Error("Too many levels of ../../.. in imports");
-      }
-      relativePathOrPackage = relativePathOrPackage.substr(3);
-      currentPath = currentPath.slice(0, currentPath.length - 1);
-    }
-  }
-  return (
-    (currentPath.length ? currentPath.join("/") + "/" : "") +
-    relativePathOrPackage
-  );
+  return path.relative(rootDirectoryPath, path.join(fromDirectoryPath, relativePathOrPackage));
 }
 
 function createRegistry(
@@ -159,25 +151,20 @@ function createRegistry(
     }
   }
 
-  function index(path: string): number {
-    if (path[0] == "@") {
-      let slashPosition = path.indexOf("/");
+  function index(importPath: string): number {
+    if (importPath[0] == "@") {
+      let slashPosition = importPath.indexOf("/");
       if (slashPosition > -1) {
-        path = path.substr(0, slashPosition);
-      }
-    } else {
-      let extensionPosition = path.lastIndexOf(".");
-      if (extensionPosition > -1) {
-        path = path.substr(0, extensionPosition);
+        importPath = importPath.substr(0, slashPosition);
       }
     }
-    if (registry.indexes[path] === undefined) {
+    if (registry.indexes[importPath] === undefined) {
       let index = registry.size++;
-      registry.indexes[path] = index;
-      registry.paths[index] = path;
+      registry.indexes[importPath] = index;
+      registry.paths[index] = importPath;
       registry.deps[index] = [];
     }
-    return registry.indexes[path];
+    return registry.indexes[importPath];
   }
 
   return registry;
