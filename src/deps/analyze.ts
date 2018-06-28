@@ -15,74 +15,92 @@ class FileDeps {
   imports: string[] = [];
 }
 
-export default function analyze(directoryPath: string): Registry {
-  let deps = getDeps(directoryPath, directoryPath);
+let EXTENSION_TO_SCRIPT_KIND = {
+  js: ts.ScriptKind.JS,
+  jsx : ts.ScriptKind.JSX,
+  es6: ts.ScriptKind.JS,
+  ts: ts.ScriptKind.TS,
+  tsx: ts.ScriptKind.TSX
+};
+
+/**
+ * Analyzes a directory of JS/TS files and returns the computed registry.
+ */
+export default function analyzeDirectory(directoryPath: string): Registry {
+  let deps = getDirDeps(directoryPath, directoryPath);
   let registry = createRegistry(deps);
   removeDuplicateDeps(registry);
   return registry;
 }
 
-function getDeps(rootDirectoryPath: string, currentDirectoryPath: string): FolderDeps {
+/**
+ * Analyzes a specific JS/TS file and returns its dependencies.
+ */
+export function analyzeFile(filePath: string) {
+  return getFileDeps(path.dirname(filePath), filePath);
+}
+
+/**
+ * Analyzes a codebase starting from a specific JS/TS file (e.g. main.js) and
+ * tracks down its dependencies at an arbitrary level of depth.
+ */
+export function analyzeTree(rootFilePath: string, depth = 3) {
+  let rootDirectoryPath = path.dirname(rootFilePath);
+  let filesPerLevel: Set<string>[] = [];
+  filesPerLevel[0] = new Set([path.basename(rootFilePath)]);
+  for (let level = 1; level <= depth; level++) {
+    filesPerLevel[level] = new Set();
+    for (let filePath of filesPerLevel[level - 1]) {
+      let deps = getFileDeps(rootDirectoryPath, path.join(rootDirectoryPath, filePath));
+      if (deps) {
+        importPathLoop: for (let importPath of deps.imports) {
+          let importedFilePath = pathFromImportPath(rootDirectoryPath, importPath);
+          if (importedFilePath) {
+            let relativeFilePath = path.relative(rootDirectoryPath, importedFilePath);
+            for (let previousLevel = 0; previousLevel < level; previousLevel++) {
+              if (filesPerLevel[previousLevel].has(relativeFilePath)) {
+                // Skip it to avoid redundancy.
+                continue importPathLoop;
+              }
+            }
+            filesPerLevel[level].add(relativeFilePath);
+          }
+        }
+      }
+    }
+  }
+  return filesPerLevel;
+}
+
+function pathFromImportPath(rootDirectoryPath: string, importPath: string): string | null {
+  if (importPath.startsWith('@')) {
+    return null;
+  }
+  for (let extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
+    let potentialFilePath = path.join(rootDirectoryPath, importPath + '.' + extension);
+    if (fs.existsSync(potentialFilePath)) {
+      return potentialFilePath;
+    }
+  }
+  return null;
+}
+
+/**
+ * Finds the dependencies of every file in a directory.
+ * 
+ * @param rootDirectoryPath The absolute path of the root directory from which we started the analysis.
+ * @param currentDirectoryPath The absolute path of the current directory we're looking at.
+ */
+function getDirDeps(rootDirectoryPath: string, currentDirectoryPath: string): FolderDeps {
   let folderDeps: FolderDeps = {};
   for (let childName of fs.readdirSync(currentDirectoryPath)) {
     let childPath = path.join(currentDirectoryPath, childName);
     let lstat = fs.lstatSync(childPath);
     if (lstat.isFile()) {
       try {
-        let parsed: ts.SourceFile;
-        if (childName.endsWith(".js") || childName.endsWith(".es6")) {
-          parsed = parseSourceFile(
-            fs.readFileSync(childPath, 'utf8'),
-            ts.ScriptKind.JS
-          );
-        } else if (childName.endsWith(".ts")) {
-          parsed = parseSourceFile(
-            fs.readFileSync(childPath, 'utf8'),
-            ts.ScriptKind.TS
-          );
-        } else if (childName.endsWith(".jsx")) {
-          parsed = parseSourceFile(
-            fs.readFileSync(childPath, 'utf8'),
-            ts.ScriptKind.JSX
-          );
-        } else if (childName.endsWith(".tsx")) {
-          parsed = parseSourceFile(
-            fs.readFileSync(childPath, 'utf8'),
-            ts.ScriptKind.TSX
-          );
-        } else {
-          // Ignore.
+        let fileDeps = getFileDeps(rootDirectoryPath, childPath);
+        if (fileDeps === null) {
           continue;
-        }
-        let fileDeps = new FileDeps();
-        for (let statement of parsed.statements) {
-          if (ts.isImportDeclaration(statement)) {
-            if (!ts.isStringLiteral(statement.moduleSpecifier)) {
-              throw new Error(
-                "Found an import that is not a string literal in " +
-                  childPath
-              );
-            }
-            fileDeps.imports.push(
-              relativePath(rootDirectoryPath, currentDirectoryPath, statement.moduleSpecifier.text)
-            );
-          } else if (ts.isVariableStatement(statement)) {
-            for (let declaration of statement.declarationList.declarations) {
-              if (
-                declaration.initializer &&
-                ts.isCallExpression(declaration.initializer) &&
-                ts.isIdentifier(declaration.initializer.expression) &&
-                declaration.initializer.expression.originalKeywordKind ==
-                  ts.SyntaxKind.RequireKeyword
-              ) {
-                for (let argument of declaration.initializer.arguments) {
-                  if (ts.isStringLiteral(argument)) {
-                    fileDeps.imports.push(relativePath(rootDirectoryPath, currentDirectoryPath, argument.text));
-                  }
-                }
-              }
-            }
-          }
         }
         let childNameWithoutExtension;
         let extensionPosition = childName.lastIndexOf(".");
@@ -96,10 +114,65 @@ function getDeps(rootDirectoryPath: string, currentDirectoryPath: string): Folde
         console.error("Could not parse " + childPath, e);
       }
     } else if (lstat.isDirectory() && childName != "node_modules") {
-      folderDeps[childName] = getDeps(rootDirectoryPath, childPath);
+      folderDeps[childName] = getDirDeps(rootDirectoryPath, childPath);
     }
   }
   return folderDeps;
+}
+
+/**
+ * Finds the depencies of a specific JS/TS file.
+ * 
+ * @param rootDirectoryPath The absolute path of the root directory from which we started the analysis.
+ * @param filePath The absolute path of the file we're looking at.
+ * @returns {@code null} if the file is not JavaScript or TypeScript
+ */
+function getFileDeps(rootDirectoryPath: string, filePath: string) {
+  let parsed: ts.SourceFile | null = null;
+  for (let extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
+    if (filePath.endsWith('.' + extension)) {
+      parsed = parseSourceFile(
+        fs.readFileSync(filePath, 'utf8'),
+        EXTENSION_TO_SCRIPT_KIND[extension]
+      );
+      break;
+    }
+  }
+  if (!parsed) {
+    // Ignore.
+    return null;
+  }
+  let fileDeps = new FileDeps();
+  for (let statement of parsed.statements) {
+    if (ts.isImportDeclaration(statement)) {
+      if (!ts.isStringLiteral(statement.moduleSpecifier)) {
+        throw new Error(
+          "Found an import that is not a string literal in " +
+            filePath
+        );
+      }
+      fileDeps.imports.push(
+        relativePath(rootDirectoryPath, path.dirname(filePath), statement.moduleSpecifier.text)
+      );
+    } else if (ts.isVariableStatement(statement)) {
+      for (let declaration of statement.declarationList.declarations) {
+        if (
+          declaration.initializer &&
+          ts.isCallExpression(declaration.initializer) &&
+          ts.isIdentifier(declaration.initializer.expression) &&
+          declaration.initializer.expression.originalKeywordKind ==
+            ts.SyntaxKind.RequireKeyword
+        ) {
+          for (let argument of declaration.initializer.arguments) {
+            if (ts.isStringLiteral(argument)) {
+              fileDeps.imports.push(relativePath(rootDirectoryPath, path.dirname(filePath), argument.text));
+            }
+          }
+        }
+      }
+    }
+  }
+  return fileDeps;
 }
 
 function parseSourceFile(
