@@ -5068,6 +5068,10 @@ text-table@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/text-table/-/text-table-0.2.0.tgz#7f5ee823ae805207c00af2df4a84ec3fcfa570b4"
 
+textbuilder@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/textbuilder/-/textbuilder-1.0.3.tgz#ae1ac58f7870fbc15cb5f1dfb060f963a3bdc8b7"
+
 textextensions@2:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/textextensions/-/textextensions-2.2.0.tgz#38ac676151285b658654581987a0ce1a4490d286"

@@ -9,6 +9,8 @@ export type Registry = {
   size: number;
 };
 
+export type DepsTree = { [key: string]: DepsTree } | string | null;
+
 type FolderDeps = { [key: string]: FolderDeps | FileDeps };
 
 class FileDeps {
@@ -44,32 +46,34 @@ export function analyzeFile(filePath: string) {
  * Analyzes a codebase starting from a specific JS/TS file (e.g. main.js) and
  * tracks down its dependencies at an arbitrary level of depth.
  */
-export function analyzeTree(rootFilePath: string, depth = 3) {
+export function analyzeTree(rootFilePath: string, depth = 3): DepsTree {
   let rootDirectoryPath = path.dirname(rootFilePath);
-  let filesPerLevel: Set<string>[] = [];
-  filesPerLevel[0] = new Set([path.basename(rootFilePath)]);
-  for (let level = 1; level <= depth; level++) {
-    filesPerLevel[level] = new Set();
-    for (let filePath of filesPerLevel[level - 1]) {
-      let deps = getFileDeps(rootDirectoryPath, path.join(rootDirectoryPath, filePath));
-      if (deps) {
-        importPathLoop: for (let importPath of deps.imports) {
-          let importedFilePath = pathFromImportPath(rootDirectoryPath, importPath);
-          if (importedFilePath) {
-            let relativeFilePath = path.relative(rootDirectoryPath, importedFilePath);
-            for (let previousLevel = 0; previousLevel < level; previousLevel++) {
-              if (filesPerLevel[previousLevel].has(relativeFilePath)) {
-                // Skip it to avoid redundancy.
-                continue importPathLoop;
-              }
-            }
-            filesPerLevel[level].add(relativeFilePath);
-          }
-        }
+  let relativeFilePath = path.basename(rootFilePath);
+  return {
+    ['./' + relativeFilePath]: analyzeTreeInternal(rootDirectoryPath, relativeFilePath, depth)
+  };
+}
+
+function analyzeTreeInternal(rootDirectoryPath: string, relativeFilePath: string, depth: number): DepsTree {
+  if (depth <= 0) {
+    return null;
+  }
+  let deps = getFileDeps(rootDirectoryPath, path.join(rootDirectoryPath, relativeFilePath));
+  if (!deps) {
+    return null;
+  }
+  let tree = {};
+  for (let importPath of deps.imports) {
+    let importedFilePath = pathFromImportPath(rootDirectoryPath, importPath);
+    if (importedFilePath) {
+      let relativeImportedFilePath = path.relative(rootDirectoryPath, importedFilePath);
+      if (!relativeImportedFilePath.startsWith('../')) {
+        relativeImportedFilePath = './' + relativeImportedFilePath;
       }
+      tree[relativeImportedFilePath] = analyzeTreeInternal(rootDirectoryPath, relativeImportedFilePath, depth - 1);
     }
   }
-  return filesPerLevel;
+  return tree;
 }
 
 function pathFromImportPath(rootDirectoryPath: string, importPath: string): string | null {
