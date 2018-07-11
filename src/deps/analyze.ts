@@ -19,7 +19,7 @@ class FileDeps {
 
 let EXTENSION_TO_SCRIPT_KIND = {
   js: ts.ScriptKind.JS,
-  jsx : ts.ScriptKind.JSX,
+  jsx: ts.ScriptKind.JSX,
   es6: ts.ScriptKind.JS,
   ts: ts.ScriptKind.TS,
   tsx: ts.ScriptKind.TSX
@@ -50,15 +50,26 @@ export function analyzeTree(rootFilePath: string, depth = 3): DepsTree {
   let rootDirectoryPath = path.dirname(rootFilePath);
   let relativeFilePath = path.basename(rootFilePath);
   return {
-    ['./' + relativeFilePath]: analyzeTreeInternal(rootDirectoryPath, relativeFilePath, depth)
+    ["./" + relativeFilePath]: analyzeTreeInternal(
+      rootDirectoryPath,
+      relativeFilePath,
+      depth
+    )
   };
 }
 
-function analyzeTreeInternal(rootDirectoryPath: string, relativeFilePath: string, depth: number): DepsTree {
+function analyzeTreeInternal(
+  rootDirectoryPath: string,
+  relativeFilePath: string,
+  depth: number
+): DepsTree {
   if (depth <= 0) {
     return null;
   }
-  let deps = getFileDeps(rootDirectoryPath, path.join(rootDirectoryPath, relativeFilePath));
+  let deps = getFileDeps(
+    rootDirectoryPath,
+    path.join(rootDirectoryPath, relativeFilePath)
+  );
   if (!deps) {
     return null;
   }
@@ -66,22 +77,35 @@ function analyzeTreeInternal(rootDirectoryPath: string, relativeFilePath: string
   for (let importPath of deps.imports) {
     let importedFilePath = pathFromImportPath(rootDirectoryPath, importPath);
     if (importedFilePath) {
-      let relativeImportedFilePath = path.relative(rootDirectoryPath, importedFilePath);
-      if (!relativeImportedFilePath.startsWith('../')) {
-        relativeImportedFilePath = './' + relativeImportedFilePath;
+      let relativeImportedFilePath = path.relative(
+        rootDirectoryPath,
+        importedFilePath
+      );
+      if (!relativeImportedFilePath.startsWith("../")) {
+        relativeImportedFilePath = "./" + relativeImportedFilePath;
       }
-      tree[relativeImportedFilePath] = analyzeTreeInternal(rootDirectoryPath, relativeImportedFilePath, depth - 1);
+      tree[relativeImportedFilePath] = analyzeTreeInternal(
+        rootDirectoryPath,
+        relativeImportedFilePath,
+        depth - 1
+      );
     }
   }
   return tree;
 }
 
-function pathFromImportPath(rootDirectoryPath: string, importPath: string): string | null {
-  if (importPath.startsWith('@')) {
+function pathFromImportPath(
+  rootDirectoryPath: string,
+  importPath: string
+): string | null {
+  if (importPath.startsWith("@")) {
     return null;
   }
   for (let extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
-    let potentialFilePath = path.join(rootDirectoryPath, importPath + '.' + extension);
+    let potentialFilePath = path.join(
+      rootDirectoryPath,
+      importPath + "." + extension
+    );
     if (fs.existsSync(potentialFilePath)) {
       return potentialFilePath;
     }
@@ -91,11 +115,14 @@ function pathFromImportPath(rootDirectoryPath: string, importPath: string): stri
 
 /**
  * Finds the dependencies of every file in a directory.
- * 
+ *
  * @param rootDirectoryPath The absolute path of the root directory from which we started the analysis.
  * @param currentDirectoryPath The absolute path of the current directory we're looking at.
  */
-function getDirDeps(rootDirectoryPath: string, currentDirectoryPath: string): FolderDeps {
+function getDirDeps(
+  rootDirectoryPath: string,
+  currentDirectoryPath: string
+): FolderDeps {
   let folderDeps: FolderDeps = {};
   for (let childName of fs.readdirSync(currentDirectoryPath)) {
     let childPath = path.join(currentDirectoryPath, childName);
@@ -126,7 +153,7 @@ function getDirDeps(rootDirectoryPath: string, currentDirectoryPath: string): Fo
 
 /**
  * Finds the depencies of a specific JS/TS file.
- * 
+ *
  * @param rootDirectoryPath The absolute path of the root directory from which we started the analysis.
  * @param filePath The absolute path of the file we're looking at.
  * @returns {@code null} if the file is not JavaScript or TypeScript
@@ -134,9 +161,9 @@ function getDirDeps(rootDirectoryPath: string, currentDirectoryPath: string): Fo
 function getFileDeps(rootDirectoryPath: string, filePath: string) {
   let parsed: ts.SourceFile | null = null;
   for (let extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
-    if (filePath.endsWith('.' + extension)) {
+    if (filePath.endsWith("." + extension)) {
       parsed = parseSourceFile(
-        fs.readFileSync(filePath, 'utf8'),
+        fs.readFileSync(filePath, "utf8"),
         EXTENSION_TO_SCRIPT_KIND[extension]
       );
       break;
@@ -151,12 +178,15 @@ function getFileDeps(rootDirectoryPath: string, filePath: string) {
     if (ts.isImportDeclaration(statement)) {
       if (!ts.isStringLiteral(statement.moduleSpecifier)) {
         throw new Error(
-          "Found an import that is not a string literal in " +
-            filePath
+          "Found an import that is not a string literal in " + filePath
         );
       }
       fileDeps.imports.push(
-        relativePath(rootDirectoryPath, path.dirname(filePath), statement.moduleSpecifier.text)
+        relativePath(
+          rootDirectoryPath,
+          path.dirname(filePath),
+          statement.moduleSpecifier.text
+        )
       );
     } else if (ts.isVariableStatement(statement)) {
       for (let declaration of statement.declarationList.declarations) {
@@ -169,7 +199,13 @@ function getFileDeps(rootDirectoryPath: string, filePath: string) {
         ) {
           for (let argument of declaration.initializer.arguments) {
             if (ts.isStringLiteral(argument)) {
-              fileDeps.imports.push(relativePath(rootDirectoryPath, path.dirname(filePath), argument.text));
+              fileDeps.imports.push(
+                relativePath(
+                  rootDirectoryPath,
+                  path.dirname(filePath),
+                  argument.text
+                )
+              );
             }
           }
         }
@@ -206,7 +242,10 @@ function relativePath(
     // This is an NPM package path.
     return "@" + relativePathOrPackage;
   }
-  return path.relative(rootDirectoryPath, path.join(fromDirectoryPath, relativePathOrPackage));
+  return path.relative(
+    rootDirectoryPath,
+    path.join(fromDirectoryPath, relativePathOrPackage)
+  );
 }
 
 function createRegistry(

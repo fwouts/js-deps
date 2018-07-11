@@ -1,8 +1,7 @@
 import * as bodyParser from "body-parser";
-import * as contract from "../api/contract";
 import * as express from "express";
 import * as path from "path";
-
+import * as contract from "../api/contract";
 import { analyzeDirectory, Registry } from "../deps/analyze";
 
 const app = express();

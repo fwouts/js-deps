@@ -40,16 +40,16 @@ function loadDeps(path: string) {
       }
       for (let id = 0; id < registry.size; id++) {
         let label = registry.paths[id];
-        let isPackage = label.startsWith('@');
-        let isExternal = label.startsWith('../');
+        let isPackage = label.startsWith("@");
+        let isExternal = label.startsWith("../");
         nodesDataById[id] = {
           id: id,
           label,
           color: {
-            background: isPackage ? '#fa4' : isExternal ? '#000' : '#48f'
+            background: isPackage ? "#fa4" : isExternal ? "#000" : "#48f"
           },
           font: {
-            color: isPackage ? '#000' : '#fff'
+            color: isPackage ? "#000" : "#fff"
           }
         };
         let depIds = registry.deps[id];
