@@ -8,12 +8,14 @@
     "start": "concurrently \"yarn server\" \"yarn build-ui\" \"open http://localhost:3003\"",
     "server": "ts-node-dev ./src/server/server.ts",
     "track": "ts-node-dev --respawn ./src/tracker/track.ts",
+    "find-components": "ts-node-dev --respawn ./src/components/find.ts",
     "build-ui": "webpack-cli --watch"
   },
   "dependencies": {
     "body-parser": "^1.18.3",
     "concurrently": "^3.5.1",
     "express": "^4.16.3",
+    "strongly-connected-components": "^1.0.1",
     "textbuilder": "^1.0.3",
     "typescript": "^2.8.3",
     "vis": "^4.21.0"
