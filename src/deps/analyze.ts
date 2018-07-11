@@ -28,7 +28,7 @@ let EXTENSION_TO_SCRIPT_KIND = {
 /**
  * Analyzes a directory of JS/TS files and returns the computed registry.
  */
-export default function analyzeDirectory(directoryPath: string): Registry {
+export function analyzeDirectory(directoryPath: string): Registry {
   let deps = getDirDeps(directoryPath, directoryPath);
   let registry = createRegistry(deps);
   removeDuplicateDeps(registry);

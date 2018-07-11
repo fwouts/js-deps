@@ -3,7 +3,7 @@ import * as contract from "../api/contract";
 import * as express from "express";
 import * as path from "path";
 
-import analyze, { Registry } from "../deps/analyze";
+import { analyzeDirectory, Registry } from "../deps/analyze";
 
 const app = express();
 app.use("/", express.static("dist"));
@@ -19,7 +19,7 @@ app.post("/deps", (req, res) => {
   let request = req.body as contract.DepsRequest;
   let registry: Registry;
   try {
-    registry = analyze(request.path);
+    registry = analyzeDirectory(request.path);
   } catch (e) {
     console.error(e);
     registry = { indexes: {}, paths: [], deps: [], size: 0 };
