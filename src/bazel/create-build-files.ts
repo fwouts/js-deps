@@ -73,11 +73,8 @@ function createBuildFile(rules: Rules, rulesNode: RulesNode, root: boolean) {
   }
   t.append(`package(default_visibility = ["//visibility:public"])
 
-load("@bazel_javascript//:defs.bzl", "js_library")
+load("@bazel_javascript//:defs.bzl", "js_library", "ts_library")
 `);
-  if (hasTypeScript) {
-    t.append('load("@bazel_typescript//:defs.bzl", "ts_library")\n');
-  }
   for (const rule of rulesNode.rules) {
     outputRule(rules, t, rule);
   }

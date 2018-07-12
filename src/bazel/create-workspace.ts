@@ -3,18 +3,11 @@ import * as fs from "fs";
 export function createWorkspace() {
   fs.writeFileSync(
     "WORKSPACE",
-    `# TypeScript rules.
-git_repository(
-  name = "bazel_typescript",
-  remote = "https://github.com/zenclabs/bazel-typescript.git",
-  tag = "0.0.26",
-)
-
-# JavaScript rules.
+    `# JavaScript rules.
 git_repository(
   name = "bazel_javascript",
   remote = "https://github.com/zenclabs/bazel-javascript.git",
-  tag = "0.0.17",
+  tag = "0.0.18",
 )
 
 # Required for underlying dependencies such as Node and Yarn.
