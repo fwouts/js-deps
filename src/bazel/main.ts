@@ -9,3 +9,4 @@ const rules = buildRules(registry);
 process.chdir(sourceDirectory);
 createWorkspace();
 createBuildFiles(rules);
+console.log("BUILD files generated.");

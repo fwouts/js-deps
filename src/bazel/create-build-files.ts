@@ -157,5 +157,5 @@ function ruleName(rules: Rules, ruleId: number) {
   if (!rules.ruleNames[ruleId]) {
     throw new Error(`No rule name for component ${ruleId}`);
   }
-  return `${rules.ruleNames[ruleId]}_${ruleId}`;
+  return `${rules.ruleNames[ruleId]}`;
 }

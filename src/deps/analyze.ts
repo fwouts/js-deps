@@ -114,6 +114,7 @@ function pathFromImportPath(
   if (importPath.startsWith("@")) {
     return null;
   }
+  // Try adding an extension to the path to find the file.
   for (let extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
     let potentialFilePath = path.join(
       rootDirectoryPath,
@@ -276,13 +277,34 @@ function relativePath(
     !relativePathOrPackage.startsWith("./") &&
     !relativePathOrPackage.startsWith("../")
   ) {
-    // This is an NPM package path.
+    // This is an NPM package path or an alias.
     return "@" + relativePathOrPackage;
   }
   return path.relative(
     rootDirectoryPath,
-    path.join(fromDirectoryPath, relativePathOrPackage)
+    findSource(path.join(fromDirectoryPath, relativePathOrPackage))
   );
+}
+
+function findSource(importPath: string) {
+  if (isExistingFile(importPath)) {
+    return importPath;
+  }
+  for (const extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
+    if (isExistingFile(importPath + "." + extension)) {
+      return importPath;
+    }
+  }
+  for (const extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
+    if (isExistingFile(importPath + "/index." + extension)) {
+      return importPath + "/index";
+    }
+  }
+  throw new Error(`Could not find ${importPath}`);
+}
+
+function isExistingFile(filePath: string) {
+  return fs.existsSync(filePath) && fs.lstatSync(filePath).isFile();
 }
 
 function createRegistry(

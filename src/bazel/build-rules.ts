@@ -56,7 +56,9 @@ export function buildRules(registry: Registry): Rules {
       }
       // Pick the first file's name as the rule name.
       if (!ruleNames[ruleId]) {
-        ruleNames[ruleId] = path.basename(registry.importPaths[nodeIndex]);
+        ruleNames[ruleId] = path.parse(
+          path.basename(registry.realPaths[nodeIndex])
+        ).name;
       }
       paths.push(filePath);
 
