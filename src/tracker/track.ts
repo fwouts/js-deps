@@ -1,4 +1,4 @@
-import TextBuilder from "textbuilder";
+import TextBuilder from "textbuilder/dist/textbuilder";
 import { analyzeTree, DepsTree } from "../deps/analyze";
 
 let sourceFile = process.argv[2];

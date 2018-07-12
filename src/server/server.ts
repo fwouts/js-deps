@@ -21,7 +21,13 @@ app.post("/deps", (req, res) => {
     registry = analyzeDirectory(request.path);
   } catch (e) {
     console.error(e);
-    registry = { indexes: {}, paths: [], deps: [], size: 0 };
+    registry = {
+      indexes: {},
+      importPaths: [],
+      realPaths: [],
+      deps: [],
+      size: 0
+    };
   }
   respondJson<contract.DepsResponse>(res, {
     registry

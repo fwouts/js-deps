@@ -39,7 +39,7 @@ function loadDeps(path: string) {
         isolatedNodeIds.add(id);
       }
       for (let id = 0; id < registry.size; id++) {
-        let label = registry.paths[id];
+        let label = registry.importPaths[id];
         let isPackage = label.startsWith("@");
         let isExternal = label.startsWith("../");
         nodesDataById[id] = {

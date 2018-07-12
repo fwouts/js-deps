@@ -4,18 +4,29 @@ import * as ts from "typescript";
 
 export type Registry = {
   indexes: { [key: string]: number };
-  paths: string[];
+  importPaths: string[];
+  realPaths: string[];
   deps: number[][];
   size: number;
 };
 
 export type DepsTree = { [key: string]: DepsTree } | string | null;
 
-type FolderDeps = { [key: string]: FolderDeps | FileDeps };
+// A node can be either a file or a directory, or both (e.g. home/ + home.jsx in the same
+// directory).
+type NodeDeps = {
+  file?: FileDeps;
+  children: DirDeps;
+};
 
-class FileDeps {
-  imports: string[] = [];
-}
+type DirDeps = {
+  [key: string]: NodeDeps;
+};
+
+type FileDeps = {
+  extension: string;
+  imports: string[];
+};
 
 let EXTENSION_TO_SCRIPT_KIND = {
   js: ts.ScriptKind.JS,
@@ -29,7 +40,9 @@ let EXTENSION_TO_SCRIPT_KIND = {
  * Analyzes a directory of JS/TS files and returns the computed registry.
  */
 export function analyzeDirectory(directoryPath: string): Registry {
-  let deps = getDirDeps(directoryPath, directoryPath);
+  let deps = {
+    children: getDirDeps(directoryPath, directoryPath)
+  };
   let registry = createRegistry(deps);
   removeDuplicateDeps(registry);
   return registry;
@@ -122,8 +135,8 @@ function pathFromImportPath(
 function getDirDeps(
   rootDirectoryPath: string,
   currentDirectoryPath: string
-): FolderDeps {
-  let folderDeps: FolderDeps = {};
+): DirDeps {
+  let dirDeps: DirDeps = {};
   for (let childName of fs.readdirSync(currentDirectoryPath)) {
     let childPath = path.join(currentDirectoryPath, childName);
     let lstat = fs.lstatSync(childPath);
@@ -140,15 +153,34 @@ function getDirDeps(
         } else {
           childNameWithoutExtension = childName;
         }
-        folderDeps[childNameWithoutExtension] = fileDeps;
+        addDeps(dirDeps, childNameWithoutExtension, {
+          file: fileDeps,
+          children: {}
+        });
       } catch (e) {
         console.error("Could not parse " + childPath, e);
       }
     } else if (lstat.isDirectory() && childName != "node_modules") {
-      folderDeps[childName] = getDirDeps(rootDirectoryPath, childPath);
+      const nestedDirDeps = getDirDeps(rootDirectoryPath, childPath);
+      addDeps(dirDeps, childName, { children: nestedDirDeps });
     }
   }
-  return folderDeps;
+  return dirDeps;
+}
+
+function addDeps(dirDeps: DirDeps, childName: string, nestedDeps: NodeDeps) {
+  if (!dirDeps[childName]) {
+    dirDeps[childName] = nestedDeps;
+  } else {
+    if (nestedDeps.file) {
+      dirDeps[childName].file = nestedDeps.file;
+    }
+    for (const [grandChildName, grandChildDeps] of Object.entries(
+      nestedDeps.children
+    )) {
+      addDeps(dirDeps[childName].children, grandChildName, grandChildDeps);
+    }
+  }
 }
 
 /**
@@ -158,7 +190,10 @@ function getDirDeps(
  * @param filePath The absolute path of the file we're looking at.
  * @returns {@code null} if the file is not JavaScript or TypeScript
  */
-function getFileDeps(rootDirectoryPath: string, filePath: string) {
+function getFileDeps(
+  rootDirectoryPath: string,
+  filePath: string
+): FileDeps | null {
   let parsed: ts.SourceFile | null = null;
   for (let extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
     if (filePath.endsWith("." + extension)) {
@@ -173,7 +208,10 @@ function getFileDeps(rootDirectoryPath: string, filePath: string) {
     // Ignore.
     return null;
   }
-  let fileDeps = new FileDeps();
+  let fileDeps: FileDeps = {
+    extension: path.extname(filePath),
+    imports: []
+  };
   for (let statement of parsed.statements) {
     if (ts.isImportDeclaration(statement)) {
       if (!ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -234,7 +272,6 @@ function relativePath(
   fromDirectoryPath: string,
   relativePathOrPackage: string
 ): string {
-  let isPackage: boolean;
   if (
     !relativePathOrPackage.startsWith("./") &&
     !relativePathOrPackage.startsWith("../")
@@ -249,38 +286,69 @@ function relativePath(
 }
 
 function createRegistry(
-  deps: FolderDeps,
-  registry: Registry = { indexes: {}, paths: [], deps: [], size: 0 },
-  path: string[] = []
+  deps: NodeDeps,
+  registry: Registry = {
+    indexes: {},
+    importPaths: [],
+    realPaths: [],
+    deps: [],
+    size: 0
+  },
+  pathFromRoot: string[] = []
 ): Registry {
-  for (let key of Object.keys(deps)) {
-    let entry = deps[key];
-    if (entry instanceof FileDeps) {
-      let currentPath = path.concat(key).join("/");
-      let currentIndex = index(currentPath);
-      for (let importPath of entry.imports) {
-        // TODO: Remove duplicates.
+  for (let key of Object.keys(deps.children)) {
+    let entry = deps.children[key];
+    if (entry.file) {
+      let currentPath = pathFromRoot.concat(key).join("/");
+      let currentIndex = index(currentPath, entry.file.extension);
+      for (let importPath of entry.file.imports) {
         registry.deps[currentIndex].push(index(importPath));
       }
-    } else {
-      createRegistry(entry, registry, path.concat(key));
     }
+    createRegistry(entry, registry, pathFromRoot.concat(key));
   }
 
-  function index(importPath: string): number {
-    if (importPath[0] == "@") {
+  function index(importPath: string, extension?: string): number {
+    if (importPath.startsWith("@@/")) {
+      // Special case: This is an absolute import (e.g. @/src/something).
+      // TODO: Generalise this to any alias.
+      importPath = "src/" + importPath.substr(3);
+    }
+    if (importPath[0] === "@") {
       let slashPosition = importPath.indexOf("/");
+      if (importPath[1] === "@") {
+        // We expect the package name to be @company/package.
+        slashPosition = importPath.indexOf("/", slashPosition + 1);
+      }
       if (slashPosition > -1) {
         importPath = importPath.substr(0, slashPosition);
       }
+    } else {
+      // In case of a statement like "import * from './script.jsx'", we want to
+      // make sure it becomes "import * from './script'" to avoid duplication
+      // of nodes (./script and ./script.jsx are the same thing).
+      for (const extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
+        if (importPath.endsWith("." + extension)) {
+          importPath = importPath.substr(
+            0,
+            importPath.length - 1 - extension.length
+          );
+          break;
+        }
+      }
     }
-    if (registry.indexes[importPath] === undefined) {
-      let index = registry.size++;
+    let index = registry.indexes[importPath];
+    if (index === undefined) {
+      index = registry.size++;
       registry.indexes[importPath] = index;
-      registry.paths[index] = importPath;
+      registry.importPaths[index] = importPath;
+      registry.realPaths[index] = importPath;
       registry.deps[index] = [];
     }
-    return registry.indexes[importPath];
+    if (extension) {
+      registry.realPaths[index] = registry.importPaths[index] + extension;
+    }
+    return index;
   }
 
   return registry;

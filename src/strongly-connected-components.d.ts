@@ -10,11 +10,11 @@ declare module "strongly-connected-components" {
     /**
      * An adjacenly list for the components.
      */
-    adjacencyList: { [node: ComponentIndex]: ComponentIndex[] };
+    adjacencyList: { [node: ComponentId]: ComponentId[] };
   };
 
   export type NodeIndex = number;
-  export type ComponentIndex = number;
+  export type ComponentId = number;
 
   export = scc;
 }
