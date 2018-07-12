@@ -102,18 +102,16 @@ function outputRule(rules: Rules, t: TextBuilder, rule: Rule) {
       }
     });
     t.append("],\n");
-    if (rule.deps.filter(dep => rules.rootDirs[dep]).length > 0) {
-      t.append("deps = [");
-      t.indented(() => {
-        for (const dep of rule.deps) {
-          if (rules.rootDirs[dep]) {
-            t.append(`"${rulePath(rules, dep)}",\n`);
-          }
+    t.append("deps = [");
+    t.indented(() => {
+      for (const dep of rule.deps) {
+        if (rules.rootDirs[dep]) {
+          t.append(`"${rulePath(rules, dep)}",\n`);
         }
-        t.append('"//:packages",\n');
-      });
-      t.append("],\n");
-    }
+      }
+      t.append('"//:packages",\n');
+    });
+    t.append("],\n");
     if (
       rule.deps.filter(
         dep =>
