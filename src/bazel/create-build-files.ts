@@ -112,25 +112,6 @@ function outputRule(rules: Rules, t: TextBuilder, rule: Rule) {
       t.append('"//:packages",\n');
     });
     t.append("],\n");
-    if (
-      rule.deps.filter(
-        dep =>
-          rules.moduleRules[dep] && !NODE_MODULES.has(rules.moduleRules[dep])
-      ).length > 0
-    ) {
-      t.append("requires = [");
-      t.indented(() => {
-        for (const dep of rule.deps) {
-          if (
-            rules.moduleRules[dep] &&
-            !NODE_MODULES.has(rules.moduleRules[dep])
-          ) {
-            t.append(`"${rules.moduleRules[dep]}",\n`);
-          }
-        }
-      });
-      t.append("],\n");
-    }
   });
   t.append(")\n");
 }

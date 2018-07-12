@@ -7,7 +7,7 @@ export function createWorkspace() {
 git_repository(
   name = "bazel_javascript",
   remote = "https://github.com/zenclabs/bazel-javascript.git",
-  tag = "0.0.19",
+  tag = "0.0.20",
 )
 
 # Required for underlying dependencies such as Node and Yarn.
