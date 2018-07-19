@@ -213,10 +213,21 @@ function getFileDeps(
     extension: path.extname(filePath),
     imports: []
   };
-  for (let statement of parsed.statements) {
-    if (ts.isImportDeclaration(statement)) {
+
+  // Visit every node in the tree to look for imports.
+  findImportsRecursively(parsed);
+
+  function findImportsRecursively(node: ts.Node) {
+    findImports(node);
+    for (const child of node.getChildren(parsed!)) {
+      findImportsRecursively(child);
+    }
+  }
+
+  function findImports(node: ts.Node) {
+    if (ts.isImportDeclaration(node)) {
       // import ... from 'path';
-      if (!ts.isStringLiteral(statement.moduleSpecifier)) {
+      if (!ts.isStringLiteral(node.moduleSpecifier)) {
         throw new Error(
           "Found an import that is not a string literal in " + filePath
         );
@@ -225,12 +236,12 @@ function getFileDeps(
         relativePath(
           rootDirectoryPath,
           path.dirname(filePath),
-          statement.moduleSpecifier.text
+          node.moduleSpecifier.text
         )
       );
-    } else if (ts.isExportDeclaration(statement) && statement.moduleSpecifier) {
+    } else if (ts.isExportDeclaration(node) && node.moduleSpecifier) {
       // export ... from 'path';
-      if (!ts.isStringLiteral(statement.moduleSpecifier)) {
+      if (!ts.isStringLiteral(node.moduleSpecifier)) {
         throw new Error(
           "Found an import that is not a string literal in " + filePath
         );
@@ -239,30 +250,24 @@ function getFileDeps(
         relativePath(
           rootDirectoryPath,
           path.dirname(filePath),
-          statement.moduleSpecifier.text
+          node.moduleSpecifier.text
         )
       );
-    } else if (ts.isVariableStatement(statement)) {
-      // var a = require(...);
-      for (let declaration of statement.declarationList.declarations) {
-        if (
-          declaration.initializer &&
-          ts.isCallExpression(declaration.initializer) &&
-          ts.isIdentifier(declaration.initializer.expression) &&
-          declaration.initializer.expression.originalKeywordKind ==
-            ts.SyntaxKind.RequireKeyword
-        ) {
-          for (let argument of declaration.initializer.arguments) {
-            if (ts.isStringLiteral(argument)) {
-              fileDeps.imports.push(
-                relativePath(
-                  rootDirectoryPath,
-                  path.dirname(filePath),
-                  argument.text
-                )
-              );
-            }
-          }
+    } else if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.originalKeywordKind == ts.SyntaxKind.RequireKeyword
+    ) {
+      // require(...)
+      for (let argument of node.arguments) {
+        if (ts.isStringLiteral(argument)) {
+          fileDeps.imports.push(
+            relativePath(
+              rootDirectoryPath,
+              path.dirname(filePath),
+              argument.text
+            )
+          );
         }
       }
     }
@@ -362,7 +367,7 @@ function createRegistry(
         importPath = importPath.substr(0, slashPosition);
       }
     } else {
-      // In case of a statement like "import * from './script.jsx'", we want to
+      // In case of a node like "import * from './script.jsx'", we want to
       // make sure it becomes "import * from './script'" to avoid duplication
       // of nodes (./script and ./script.jsx are the same thing).
       for (const extension of Object.keys(EXTENSION_TO_SCRIPT_KIND)) {
