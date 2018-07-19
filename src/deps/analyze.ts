@@ -215,6 +215,21 @@ function getFileDeps(
   };
   for (let statement of parsed.statements) {
     if (ts.isImportDeclaration(statement)) {
+      // import ... from 'path';
+      if (!ts.isStringLiteral(statement.moduleSpecifier)) {
+        throw new Error(
+          "Found an import that is not a string literal in " + filePath
+        );
+      }
+      fileDeps.imports.push(
+        relativePath(
+          rootDirectoryPath,
+          path.dirname(filePath),
+          statement.moduleSpecifier.text
+        )
+      );
+    } else if (ts.isExportDeclaration(statement) && statement.moduleSpecifier) {
+      // export ... from 'path';
       if (!ts.isStringLiteral(statement.moduleSpecifier)) {
         throw new Error(
           "Found an import that is not a string literal in " + filePath
@@ -228,6 +243,7 @@ function getFileDeps(
         )
       );
     } else if (ts.isVariableStatement(statement)) {
+      // var a = require(...);
       for (let declaration of statement.declarationList.declarations) {
         if (
           declaration.initializer &&
