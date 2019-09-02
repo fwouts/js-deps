@@ -25,8 +25,7 @@ function buildTextTree(
     for (let path of Object.keys(tree)) {
       let alreadyShowedPath = displayedPaths.has(path);
       if (alreadyShowedPath) {
-        t.append(path, " [listed above]");
-        t.linebreak();
+        t.append(`${path} [listed above]\n`);
       } else {
         t.append(path);
         displayedPaths.add(path);
